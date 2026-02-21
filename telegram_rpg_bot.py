@@ -11,7 +11,7 @@
     python telegram_rpg_bot.py
 
 ПЕРЕМЕННАЯ ОКРУЖЕНИЯ (рекомендуется на хостинге):
-    export BOT_TOKEN=ваш_токен
+    export BOT_TOKEN=8320167178:AAG4qI2g5hoayUztHRIG7w4Vojf8g_gbGrM
 
 Или вставь токен прямо в строку BOT_TOKEN ниже.
 Токен получить у @BotFather в Telegram.
