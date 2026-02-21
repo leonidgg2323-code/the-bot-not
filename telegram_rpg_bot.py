@@ -1,20 +1,17 @@
 """
 ╔══════════════════════════════════════════════╗
 ║   🎮  TELEGRAM RPG BOT  — Хроники Заории    ║
-║   Готов к запуску на любом хостинге          ║
+║   Совместим с python-telegram-bot==21.10     ║
 ╚══════════════════════════════════════════════╝
 
 УСТАНОВКА:
-    pip install python-telegram-bot==20.7
+    pip install python-telegram-bot==21.10
 
 ЗАПУСК:
     python telegram_rpg_bot.py
 
-ПЕРЕМЕННАЯ ОКРУЖЕНИЯ (рекомендуется на хостинге):
-    export BOT_TOKEN=8320167178:AAG4qI2g5hoayUztHRIG7w4Vojf8g_gbGrM
-
-Или вставь токен прямо в строку BOT_TOKEN ниже.
-Токен получить у @BotFather в Telegram.
+ПЕРЕМЕННАЯ ОКРУЖЕНИЯ (Railway / хостинг):
+    BOT_TOKEN=ваш_токен
 """
 
 import os
@@ -38,8 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ════════════════════════════════════════════════════════════
-#  💾  ХРАНИЛИЩЕ ИГРОКОВ (RAM)
-#  Для продакшна замени на SQLite/PostgreSQL
+#  💾  ХРАНИЛИЩЕ ИГРОКОВ
 # ════════════════════════════════════════════════════════════
 PLAYERS: dict[int, dict] = {}
 
@@ -63,9 +59,8 @@ def get_player(uid: int) -> dict:
 
 def status_bar(p: dict) -> str:
     hp_pct = p["hp"] / p["max_hp"]
-    bar_len = 10
-    filled = int(hp_pct * bar_len)
-    bar = "█" * filled + "░" * (bar_len - filled)
+    filled = int(hp_pct * 10)
+    bar = "█" * filled + "░" * (10 - filled)
     exp_needed = p["level"] * 100
     return (
         f"👤 *{p['name']}* — Уровень {p['level']}\n"
@@ -105,7 +100,6 @@ SHOP_ITEMS = {
     "sword2":     {"name": "⚔️ Стальной меч",        "gold": 180, "gems": 0, "type": "weapon",     "effect": {"attack": 12},          "desc": "+12 к атаке"},
     "shield1":    {"name": "🛡 Деревянный щит",      "gold": 60,  "gems": 0, "type": "armor",      "effect": {"defense": 4},          "desc": "+4 к защите"},
     "armor1":     {"name": "🪖 Кольчуга",            "gold": 150, "gems": 0, "type": "armor",      "effect": {"defense": 10},         "desc": "+10 к защите"},
-    # Предметы за кристаллы (из доната)
     "gem_sword":  {"name": "💠 Магический клинок",   "gold": 0,   "gems": 5, "type": "weapon",     "effect": {"attack": 25},          "desc": "+25 к атаке | Только за 💎"},
     "gem_armor":  {"name": "🔮 Зачарованный доспех", "gold": 0,   "gems": 5, "type": "armor",      "effect": {"defense": 20},         "desc": "+20 к защите | Только за 💎"},
     "gem_elixir": {"name": "✨ Эликсир силы",        "gold": 0,   "gems": 3, "type": "consumable", "effect": {"attack": 5, "defense": 3, "max_hp": 30}, "desc": "+5 ATK, +3 DEF, +30 MaxHP | Только за 💎"},
@@ -115,11 +109,11 @@ SHOP_ITEMS = {
 #  🗺️  ЛОКАЦИИ
 # ════════════════════════════════════════════════════════════
 LOCATIONS = {
-    "village": {"name": "🏘 Деревня Заря",       "desc": "Тихий посёлок у подножия гор. Здесь можно отдохнуть и снарядиться в путь.",        "min_level": 1},
-    "forest":  {"name": "🌲 Тёмный лес",         "desc": "Дремучий лес, полный волков и гоблинов. Опасно, но щедро на награды.",              "min_level": 1},
-    "swamp":   {"name": "🌿 Гнилое болото",       "desc": "Туманное болото с кровожадными тварями. Нужно хорошее снаряжение.",                 "min_level": 3},
-    "dungeon": {"name": "🏰 Подземелье Черепа",   "desc": "Древнее подземелье с ловушками и орками. Только для опытных героев.",               "min_level": 5},
-    "volcano": {"name": "🌋 Вулкан Смерти",       "desc": "Огненные пещеры — обитель дракона Скорга. Крайне опасно!",                         "min_level": 8},
+    "village": {"name": "🏘 Деревня Заря",      "desc": "Тихий посёлок у подножия гор. Здесь можно отдохнуть и снарядиться.",      "min_level": 1},
+    "forest":  {"name": "🌲 Тёмный лес",        "desc": "Дремучий лес, полный волков и гоблинов. Опасно, но щедро на награды.",    "min_level": 1},
+    "swamp":   {"name": "🌿 Гнилое болото",      "desc": "Туманное болото с кровожадными тварями. Нужно хорошее снаряжение.",       "min_level": 3},
+    "dungeon": {"name": "🏰 Подземелье Черепа",  "desc": "Древнее подземелье с орками. Только для опытных героев.",                 "min_level": 5},
+    "volcano": {"name": "🌋 Вулкан Смерти",      "desc": "Огненные пещеры — обитель дракона Скорга. Крайне опасно!",               "min_level": 8},
 }
 
 
@@ -129,7 +123,7 @@ LOCATIONS = {
 def simulate_fight(player: dict, monster_key: str) -> tuple[str, bool]:
     m = dict(MONSTERS[monster_key])
     m_hp = m["hp"]
-    log_lines = [f"⚔️ *БИТВА: {player['name']} vs {m['name']}*", "─" * 30]
+    log_lines = [f"⚔️ *БИТВА: {player['name']} vs {m['name']}*", "─" * 28]
     round_n = 1
 
     while player["hp"] > 0 and m_hp > 0 and round_n <= 20:
@@ -156,10 +150,9 @@ def simulate_fight(player: dict, monster_key: str) -> tuple[str, bool]:
         player["kills"] += 1
 
         lvl_msg = ""
-        exp_needed = player["level"] * 100
-        if player["exp"] >= exp_needed:
+        if player["exp"] >= player["level"] * 100:
+            player["exp"] -= player["level"] * 100
             player["level"] += 1
-            player["exp"] -= exp_needed
             player["attack"] += 3
             player["defense"] += 1
             player["max_hp"] += 25
@@ -179,7 +172,7 @@ def simulate_fight(player: dict, monster_key: str) -> tuple[str, bool]:
 # ════════════════════════════════════════════════════════════
 #  🎛️  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ════════════════════════════════════════════════════════════
-def make_kb(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
+def make_kb(rows: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(t, callback_data=d) for t, d in row]
         for row in rows
@@ -215,12 +208,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "╔═══════════════════════════╗\n"
         "║  ⚔️  ХРОНИКИ ЗАОРИИ  ⚔️  ║\n"
         "╚═══════════════════════════╝\n\n"
-        f"Добро пожаловать, *{p['name']}*!\n\n"
-        "Ты стоишь у ворот деревни Заря. Впереди — тёмные леса, "
-        "болота и древние подземелья. Слава ждёт смельчаков!\n\n"
+        f"Добро пожаловать, *{p['name']}*\\!\n\n"
+        "Ты стоишь у ворот деревни Заря\\. Впереди — тёмные леса, "
+        "болота и древние подземелья\\. Слава ждёт смельчаков\\!\n\n"
         + status_bar(p)
     )
-    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=village_kb())
+    await update.message.reply_text(text, parse_mode="MarkdownV2", reply_markup=village_kb())
 
 
 async def cmd_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -235,7 +228,7 @@ async def cmd_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ════════════════════════════════════════════════════════════
-#  🎮  CALLBACK-ХЕНДЛЕР (ВСЕ КНОПКИ)
+#  🎮  CALLBACK-ХЕНДЛЕР
 # ════════════════════════════════════════════════════════════
 async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -244,7 +237,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     p = get_player(uid)
     data = query.data
 
-    # ── ГЛАВНОЕ МЕНЮ ──────────────────────────────────────
     if data == "main_menu":
         loc = LOCATIONS[p["location"]]
         kb = village_kb() if p["location"] == "village" else location_kb()
@@ -253,7 +245,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown", reply_markup=kb
         )
 
-    # ── ПРОФИЛЬ ───────────────────────────────────────────
     elif data == "profile":
         inv = ", ".join(p["inventory"]) if p["inventory"] else "пусто"
         await query.edit_message_text(
@@ -265,13 +256,12 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=make_kb([[("🔙 Меню", "main_menu")]])
         )
 
-    # ── КАРТА МИРА ────────────────────────────────────────
     elif data == "map":
         lines = []
         for lid, ldata in LOCATIONS.items():
             locked = p["level"] < ldata["min_level"]
             mark = "🔒" if locked else ("📍" if lid == p["location"] else "  ")
-            lines.append(f"{mark} {ldata['name']}  _(мин. ур. {ldata['min_level']})_")
+            lines.append(f"{mark} {ldata['name']}  \\(мин\\. ур\\. {ldata['min_level']}\\)")
 
         buttons = []
         for lid, ldata in LOCATIONS.items():
@@ -280,15 +270,14 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         buttons.append([("🔙 Назад", "main_menu")])
 
         await query.edit_message_text(
-            "🗺 *КАРТА МИРА*\n\n" + "\n".join(lines) + "\n\n📍 = ты  🔒 = закрыто",
-            parse_mode="Markdown",
+            "🗺 *КАРТА МИРА*\n\n" + "\n".join(lines) + "\n\n📍 \\= ты сейчас  🔒 \\= закрыто",
+            parse_mode="MarkdownV2",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(t, callback_data=d) for t, d in row]
                 for row in buttons
             ])
         )
 
-    # ── ПУТЕШЕСТВИЕ ───────────────────────────────────────
     elif data.startswith("travel_"):
         dest = data[7:]
         if dest not in LOCATIONS:
@@ -297,8 +286,8 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         req = LOCATIONS[dest]["min_level"]
         if p["level"] < req:
             await query.edit_message_text(
-                f"🔒 *Требуется {req} уровень!*\nТвой уровень: {p['level']}",
-                parse_mode="Markdown",
+                f"🔒 *Требуется {req} уровень\\!*\nТвой уровень: {p['level']}",
+                parse_mode="MarkdownV2",
                 reply_markup=make_kb([[("🗺 Карта", "map")]])
             )
             return
@@ -310,7 +299,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=location_kb()
         )
 
-    # ── ЯРЛЫКИ ───────────────────────────────────────────
     elif data == "go_village":
         p["location"] = "village"
         loc = LOCATIONS["village"]
@@ -327,7 +315,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown", reply_markup=location_kb()
         )
 
-    # ── БОЙ: ВЫБОР МОНСТРА ────────────────────────────────
     elif data == "fight":
         loc = p["location"]
         if loc not in LOCATION_MONSTERS:
@@ -347,7 +334,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # ── БОЙ: АТАКА ───────────────────────────────────────
     elif data == "do_fight":
         mk = p.get("current_fight")
         if not mk:
@@ -363,21 +349,19 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # ── ПОБЕГ ─────────────────────────────────────────────
     elif data == "flee":
         p["current_fight"] = None
         dmg = random.randint(3, 12)
         p["hp"] = max(1, p["hp"] - dmg)
         await query.edit_message_text(
-            f"🏃 Ты убежал! Но получил {dmg} урона.\nHP: {p['hp']}",
+            f"🏃 Ты убежал! Получил {dmg} урона при бегстве.\nHP: {p['hp']}",
             reply_markup=make_kb([[("🔙 Меню", "main_menu")]])
         )
 
-    # ── ИССЛЕДОВАНИЕ ─────────────────────────────────────
     elif data == "explore":
         events = [
             ("💰 Ты нашёл спрятанный сундук!", "gold", random.randint(10, 50)),
-            ("🌿 Ты нашёл лечебные травы!", "hp", random.randint(15, 35)),
+            ("🌿 Нашёл лечебные травы!", "hp", random.randint(15, 35)),
             ("📜 Нашёл свиток с мудростью.", "exp", random.randint(20, 50)),
             ("🪨 Ничего интересного... только камни.", None, 0),
             ("👻 Призрак напугал тебя!", "hp", -random.randint(5, 15)),
@@ -408,7 +392,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # ── ЛЕЧЕНИЕ В ТАВЕРНЕ ─────────────────────────────────
     elif data == "heal":
         cost = 20
         if p["hp"] == p["max_hp"]:
@@ -431,18 +414,13 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=make_kb([[("🔙 Меню", "main_menu")]])
         )
 
-    # ── МАГАЗИН ──────────────────────────────────────────
     elif data == "shop":
         lines = []
         for iid, item in SHOP_ITEMS.items():
             price = f"💎 {item['gems']} кристаллов" if item["gems"] > 0 else f"🪙 {item['gold']} золота"
             lines.append(f"• *{item['name']}* — {price}\n  _{item['desc']}_")
 
-        text = (
-            f"🏪 *МАГАЗИН*\n{'─'*28}\n\n"
-            + "\n\n".join(lines) +
-            f"\n\n{'─'*28}\n{status_bar(p)}"
-        )
+        text = f"🏪 *МАГАЗИН*\n{'─'*28}\n\n" + "\n\n".join(lines) + f"\n\n{'─'*28}\n{status_bar(p)}"
 
         buttons = []
         row = []
@@ -464,7 +442,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # ── ПОКУПКА ──────────────────────────────────────────
     elif data.startswith("buy_"):
         iid = data[4:]
         item = SHOP_ITEMS.get(iid)
@@ -509,7 +486,6 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=make_kb([[("🏪 Ещё в магазине", "shop"), ("🔙 Меню", "main_menu")]])
         )
 
-    # ── ДОНАТ ─────────────────────────────────────────────
     elif data == "donate_menu":
         text = (
             "💎 *ПОДДЕРЖКА РАЗРАБОТЧИКА*\n"
@@ -522,8 +498,7 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "  ▸ 💎×15 — 3 ⭐ Telegram Stars\n"
             "  ▸ 💎×40 — 7 ⭐ Telegram Stars\n"
             "  ▸ 💎×100 — 15 ⭐ Telegram Stars\n\n"
-            "⭐ _Telegram Stars — встроенная платёжная система Telegram, "
-            "всё безопасно и без сторонних сервисов._"
+            "_Telegram Stars — встроенная платёжная система Telegram, безопасно и без сторонних сервисов._"
         )
         await query.edit_message_text(
             text, parse_mode="Markdown",
@@ -534,7 +509,7 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    elif data.startswith("donate_") and data in ("donate_1", "donate_3", "donate_7", "donate_15"):
+    elif data in ("donate_1", "donate_3", "donate_7", "donate_15"):
         packages = {
             "donate_1":  (1,  5,   "5 кристаллов"),
             "donate_3":  (3,  15,  "15 кристаллов"),
@@ -547,12 +522,11 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             title=f"💎 {label}",
             description=f"Получи {gems} кристаллов для игры в «Хрониках Заории»!",
             payload=f"gems_{gems}_{uid}",
-            provider_token="",   # Пусто = Telegram Stars (XTR)
+            provider_token="",
             currency="XTR",
             prices=[LabeledPrice(label=f"{gems} кристаллов", amount=stars)],
         )
 
-    # ── ТАБЛИЦА ЛИДЕРОВ ──────────────────────────────────
     elif data == "leaderboard":
         if not PLAYERS:
             text = "🏆 *Таблица героев пуста*\nСтань первым!"
@@ -569,7 +543,7 @@ async def handle_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ════════════════════════════════════════════════════════════
-#  💳  ПЛАТЁЖНАЯ СИСТЕМА (Telegram Stars)
+#  💳  ПЛАТЁЖНАЯ СИСТЕМА
 # ════════════════════════════════════════════════════════════
 async def pre_checkout(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.pre_checkout_query.answer(ok=True)
@@ -606,10 +580,7 @@ def main():
     if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
         print("\n" + "═" * 50)
         print("❌  ОШИБКА: Токен бота не задан!")
-        print("   1. Открой @BotFather в Telegram")
-        print("   2. Создай бота командой /newbot")
-        print("   3. Вставь полученный токен в BOT_TOKEN")
-        print("   Или задай переменную окружения: export BOT_TOKEN=...")
+        print("   Задай переменную окружения: BOT_TOKEN=...")
         print("═" * 50 + "\n")
         return
 
@@ -621,7 +592,7 @@ def main():
     app.add_handler(PreCheckoutQueryHandler(pre_checkout))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
-    logger.info("🎮 Бот «Хроники Заории» запущен! Ctrl+C для остановки.")
+    logger.info("🎮 Бот «Хроники Заории» запущен!")
     app.run_polling(drop_pending_updates=True)
 
 
